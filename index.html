@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Emergency Medical QR Card</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        /* Base Styles & Input Mode Color Scheme: Blue and Black Gradient */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e3a8a);
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            transition: background 0.5s ease;
+        }
+
+        /* Card Container */
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            width: 100%;
+            max-width: 500px;
+            box-sizing: border-box;
+        }
+
+        h2, h3 {
+            text-align: center;
+            margin-top: 0;
+            letter-spacing: 1px;
+        }
+
+        label {
+            display: block;
+            margin: 12px 0 6px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(0, 0, 0, 0.3);
+            color: white;
+            box-sizing: border-box;
+            font-size: 16px;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #3b82f6;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #1d4ed8;
+        }
+
+        /* Scanned/Result Card Color Scheme: Black and Red Gradient */
+        body.scanned-mode {
+            background: linear-gradient(135deg, #000000, #7f1d1d);
+        }
+
+        body.scanned-mode button {
+            background: #dc2626;
+        }
+        body.scanned-mode button:hover {
+            background: #b91c1c;
+        }
+
+        /* QR Display Area */
+        #qr-section, #card-view {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        #qrcode {
+            display: inline-block;
+            margin: 20px 0;
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+        }
+
+        .emergency-badge {
+            background: #dc2626;
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 15px;
+            animation: blink 2s infinite;
+        }
+
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+
+        .info-display {
+            text-align: left;
+            background: rgba(0,0,0,0.4);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+
+        .hospital-list {
+            max-height: 150px;
+            overflow-y: auto;
+            text-align: left;
+            background: rgba(255,255,255,0.1);
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div id="form-view">
+        <h2>Medical Info Creator</h2>
+        <p style="text-align: center; font-size: 13px; color: #93c5fd;">Fill in details to generate your Emergency QR Code</p>
+        
+        <label>Full Name:</label>
+        <input type="text" id="name" placeholder="e.g. Rahul Sharma">
+
+        <label>Age:</label>
+        <input type="number" id="age" placeholder="e.g. 25">
+
+        <label>Emergency Contact Number:</label>
+        <input type="tel" id="phone" placeholder="e.g. +91 98765 43210">
+
+        <label>Allergies / Conditions:</label>
+        <input type="text" id="allergy" placeholder="e.g. Peanut Allergy, Diabetes, Asthma">
+
+        <label>Condition / Symptom Info:</label>
+        <textarea id="symptom-info" rows="3" placeholder="Type custom symptoms, medications, or critical notes here..."></textarea>
+
+        <button onclick="generateQRCode()">MAKE QR CODE</button>
+        
+        <div id="qr-section">
+            <h3>Your QR Code is Ready!</h3>
+            <div id="qrcode"></div>
+            <p style="font-size: 12px; color: #a1a1aa;">Screenshot or print this QR code. When scanned, it opens this card.</p>
+            <button onclick="simulateScan()" style="background: #4b5563;">Simulate Scan (Test Card)</button>
+        </div>
+    </div>
+
+    <div id="card-view">
+        <div class="emergency-badge">EMERGENCY MEDICAL CARD</div>
+        
+        <label for="lang-select">Choose Language / भाषा चुनें:</label>
+        <select id="lang-select" onchange="changeLanguage()" style="background: #111827; color: #f3f4f6;">
+            <option value="en">English</option>
+            <option value="mr">Marathi (मराठी)</option>
+            <option value="hi">Hindi (हिंदी)</option>
+            <option value="gu">Gujarati (ગુજરાતી)</option>
+            <option value="ta">Tamil (தமிழ்)</option>
+            <option value="bn">Bengali (বাংলা)</option>
+        </select>
+
+        <div class="info-display">
+            <p><strong><span class="lbl-name">Name</span>:</strong> <span id="view-name"></span></p>
+            <p><strong><span class="lbl-age">Age</span>:</strong> <span id="view-age"></span></p>
+            <p><strong><span class="lbl-phone">Emergency Contact</span>:</strong> <span id="view-phone"></span></p>
+            <p><strong><span class="lbl-allergy">Medical Condition</span>:</strong> <span id="view-allergy"></span></p>
+            <p><strong><span class="lbl-info">Important Information</span>:</strong> <span id="view-info"></span></p>
+        </div>
+
+        <div class="emergency-badge" style="background: #000; border: 2px solid #dc2626; animation: none;">
+            🚑 <span class="lbl-amb">AMBULANCE</span>: 102 / 108
+        </div>
+
+        <label class="lbl-search">Search Nearest City/Suburb Hospital:</label>
+        <input type="text" id="search-city" placeholder="e.g. Juhu, Lokhandwala, Mumbai, Chennai..." oninput="searchHospitals()">
+        <div class="hospital-list" id="hospital-results">
+            Type a location (e.g., Juhu) to find nearby hospitals...
+        </div>
+
+        <button onclick="window.location.reload()" style="margin-top:20px; background:#4b5563;">Create New Card</button>
+    </div>
+
+</div>
+
+<script>
+    // Regional Hospital Database Template (Mumbai Primary + States)
+    const hospitalDatabase = [
+        // Mumbai / Suburbs
+        { city: "mumbai", suburb: "juhu", name: "Arogya Nidhi Hospital, Juhu" },
+        { city: "mumbai", suburb: "juhu", name: "Cooper Hospital, Vile Parle / Juhu" },
+        { city: "mumbai", suburb: "lokhandwala", name: "Kokilaben Dhirubhai Ambani Hospital, Andheri West" },
+        { city: "mumbai", suburb: "bandra", name: "Lilavati Hospital & Research Centre" },
+        // Maharashtra
+        { city: "pune", suburb: "shivajinagar", name: "Sancheti Hospital, Pune" },
+        // Tamil Nadu
+        { city: "chennai", suburb: "greams road", name: "Apollo Hospitals, Chennai" },
+        // West Bengal
+        { city: "kolkata", suburb: "salt lake", name: "AMRI Hospitals, Kolkata" },
+        // Gujarat
+        { city: "ahmedabad", suburb: "asarwa", name: "Civil Hospital, Ahmedabad" },
+        // Punjab
+        { city: "ludhiana", suburb: "tagore nagar", name: "Dayanand Medical College & Hospital (DMCH)" }
+    ];
+
+    // Language Translations
+    const translations = {
+        en: { name: "Name", age: "Age", phone: "Emergency Contact", allergy: "Medical Condition", info: "Important Information", amb: "AMBULANCE", search: "Search Nearest City/Suburb Hospital:" },
+        mr: { name: "नाव", age: "वय", phone: "आणीबाणीचा संपर्क", allergy: "वैद्यकीय स्थिती", info: "महत्वाची माहिती", amb: "रुग्णवाहिका", search: "जवळचे शहर/उपनगर रुग्णालय शोधा:" },
+        hi: { name: "नाम", age: "उम्र", phone: "आपातकालीन संपर्क", allergy: "चिकित्सा स्थिति", info: "महत्वपूर्ण जानकारी", amb: "एम्बुलेंस", search: "निकटतम शहर/उपनगर अस्पताल खोजें:" },
+        gu: { name: "નામ", age: "ઉંમર", phone: "ઇમરજન્સી સંપર્ક", allergy: "તબીબી સ્થિતિ", info: "મહત્વપૂર્ણ માહિતી", amb: "એમ્બ્યુલન્સ", search: "નજીકની સિટી/ઉપનગર હોસ્પિટલ શોધો:" },
+        ta: { name: "பெயர்", age: "வயது", phone: "அவசர தொடர்பு", allergy: "மருத்துவ நிலை", info: "முக்கியமான தகவல்", amb: "ஆம்புலன்ஸ்", search: "அருகிலுள்ள நகரம்/புறநகர் மருத்துவமனையைத் தேடுங்கள்:" },
+        bn: { name: "নাম", age: "বয়স", phone: "জরুরী যোগাযোগ", allergy: "চিকিৎসা অবস্থা", info: "গুরুত্বপূর্ণ তথ্য", amb: "অ্যাম্বুলেন্স", search: "নিকটবর্তী শহর/শহরতলি হাসপাতাল খুঁজুন:" }
+    };
+
+    let generatedUrl = "";
+    function generateQRCode() {
+        const name = encodeURIComponent(document.getElementById('name').value || "Not Provided");
+        const age = encodeURIComponent(document.getElementById('age').value || "N/A");
+        const phone = encodeURIComponent(document.getElementById('phone').value || "N/A");
+        const allergy = encodeURIComponent(document.getElementById('allergy').value || "None Specified");
+        const info = encodeURIComponent(document.getElementById('symptom-info').value || "None Provided");
+
+        // Build a dynamic link referencing current window location with variables
+        const baseUrl = window.location.href.split('?')[0];
+        generatedUrl = `${baseUrl}?name=${name}&age=${age}&phone=${phone}&allergy=${allergy}&info=${info}`;
+
+        // Clear previous QR code
+        document.getElementById("qrcode").innerHTML = "";
+        
+        // Generate new QR code optimized for large text data payloads
+        new QRCode(document.getElementById("qrcode"), {
+            text: generatedUrl,
+            width: 200,
+            height: 200,
+            correctLevel: QRCode.CorrectLevel.L,
+            typeNumber: 0
+        });
+
+        document.getElementById('qr-section').style.display = 'block';
+    }
+
+    // Simulate scanning code by loading the generated URL details
+    function simulateScan() {
+        if(generatedUrl) {
+            window.location.href = generatedUrl;
+        }
+    }
+
+    // Parse the URL when page loads to see if it's an "Active Scanned Card"
+    window.onload = function() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('name')) {
+            // Change UI Theme to Black & Red
+            document.body.classList.add('scanned-mode');
+            document.getElementById('form-view').style.display = 'none';
+            document.getElementById('card-view').style.display = 'block';
+
+            // Insert Data into placeholders
+            document.getElementById('view-name').innerText = decodeURIComponent(urlParams.get('name'));
+            document.getElementById('view-age').innerText = decodeURIComponent(urlParams.get('age'));
+            document.getElementById('view-phone').innerText = decodeURIComponent(urlParams.get('phone'));
+            document.getElementById('view-allergy').innerText = decodeURIComponent(urlParams.get('allergy'));
+            document.getElementById('view-info').innerText = decodeURIComponent(urlParams.get('info'));
+            
+            // Default load hospital list for Mumbai
+            searchHospitals();
+        }
+    }
+
+    // Language Swapper
+    function changeLanguage() {
+        const lang = document.getElementById('lang-select').value;
+        const text = translations[lang];
+
+        document.querySelector('.lbl-name').innerText = text.name;
+        document.querySelector('.lbl-age').innerText = text.age;
+        document.querySelector('.lbl-phone').innerText = text.phone;
+        document.querySelector('.lbl-allergy').innerText = text.allergy;
+        document.querySelector('.lbl-info').innerText = text.info;
+        document.querySelector('.lbl-amb').innerText = text.amb;
+        document.querySelector('.lbl-search').innerText = text.search;
+    }
+
+    // Real-time Hospital Search Engine
+    function searchHospitals() {
+        const query = document.getElementById('search-city').value.toLowerCase().trim();
+        const resultsDiv = document.getElementById('hospital-results');
+        
+        if(query === "") {
+            resultsDiv.innerHTML = "<strong>Main Mumbai Emergency Units:</strong><br>• KEM Hospital, Parel<br>• Lilavati Hospital, Bandra<br>• Cooper Hospital, Juhu";
+            return;
+        }
+
+        let filtered = hospitalDatabase.filter(h => 
+            h.city.includes(query) || h.suburb.includes(query)
+        );
+
+        if(filtered.length > 0) {
+            resultsDiv.innerHTML = filtered.map(h => `• ${h.name} (${h.city.toUpperCase()})`).join('<br>');
+        } else {
+            resultsDiv.innerHTML = "No explicit hospital cached for this suburb. Please call 102/108 immediately or check Maps.";
+        }
+    }
+</script>
+</body>
+</html>
